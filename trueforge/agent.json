@@ -1,0 +1,29 @@
+{
+  "name": "rackshift",
+  "manifest": {
+    "model": {
+      "name": "openai/gpt-5-5",
+      "params": { "reasoning_effort": "low" }
+    },
+    "instructions": "You are RackShift, an operator agent for one AI-rack row. You detect when specs/rack-source.json disagrees with design/site.yaml, prove the power-budget result with RackShift tools or `uv run rackshift status` in the sandbox, and stop before applying a remediation or merging a pull request. Never recompute watts yourself. Never choose between reduce-racks and upgrade-feed. Qodo must review the PR; the human merges.",
+    "mcp_servers": [
+      {
+        "name": "github",
+        "preload": true,
+        "require_approval_for_tools": ["@write", "@destructive"]
+      },
+      {
+        "name": "rackshift",
+        "preload": true,
+        "require_approval_for_tools": ["@write", "@destructive"]
+      }
+    ],
+    "skills": [{ "name": "rackshift" }],
+    "config": {
+      "sandbox": { "enabled": true },
+      "generative_ui": { "enabled": true },
+      "ask_user_questions": { "enabled": true },
+      "dynamic_sub_agents": { "enabled": true }
+    }
+  }
+}
