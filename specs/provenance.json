@@ -1,0 +1,11 @@
+{
+  "events": [
+    {
+      "type": "baseline",
+      "rack_power_w": 100000,
+      "revision": 1,
+      "effective_date": "2026-06-01",
+      "source": "committed-vendor-datasheet"
+    }
+  ]
+}

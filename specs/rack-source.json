@@ -1,0 +1,9 @@
+{
+  "vendor": "NVIDIA",
+  "sku": "GB200 NVL72",
+  "rack_power_w": 100000,
+  "unit": "W",
+  "revision": 1,
+  "effective_date": "2026-06-01",
+  "source": "committed-vendor-datasheet"
+}

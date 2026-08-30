@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RackShift</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #14181e;
+      --line: #2a313c;
+      --text: #e8edf4;
+      --muted: #8b96a8;
+      --valid: #3dd68c;
+      --fail: #ff5d5d;
+      --wait: #f5c14a;
+      --accent: #7aa2ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 ui-sans-serif, system-ui, sans-serif; }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 22px; border-bottom: 1px solid var(--line);
+    }
+    header strong { letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+    header span { color: var(--muted); }
+    main { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; padding: 14px; height: calc(100% - 58px); }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow: auto; }
+    h2 { margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .matrix {
+      font-variant-numeric: tabular-nums;
+      border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 10px 0 16px;
+    }
+    .matrix.valid { background: #10261b; border-color: #1f6a43; }
+    .matrix.fail { background: #2a1212; border-color: #7a2a2a; }
+    .matrix .eq { font-size: 22px; font-weight: 650; margin: 6px 0; }
+    .status { font-size: 28px; font-weight: 700; letter-spacing: 0.08em; }
+    .status.valid { color: var(--valid); }
+    .status.fail { color: var(--fail); }
+    button {
+      background: var(--accent); color: #08101f; border: 0; border-radius: 8px;
+      padding: 10px 12px; font-weight: 700; cursor: pointer; margin: 0 8px 8px 0;
+    }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    button.danger { background: var(--fail); color: #1a0505; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .option { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .option.picked { border-color: var(--wait); }
+    .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 10px; color: var(--muted); }
+    .kv b { color: var(--text); font-weight: 600; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>RackShift</strong> · committed site design vs vendor rack spec</div>
+    <span id="repo"></span>
+  </header>
+  <main>
+    <section>
+      <h2>Source and evidence</h2>
+      <div class="kv" id="evidence"></div>
+    </section>
+    <section>
+      <h2>Operator actions</h2>
+      <p>The model does not own the power math. These buttons write files; TrueForge runs the same tools in a session.</p>
+      <button id="revise">Apply vendor revision</button>
+      <a class="secondary" href="http://localhost:8790" target="_blank" rel="noreferrer">
+        <button class="secondary" type="button">Open TrueForge session</button>
+      </a>
+      <div class="log" id="log">Waiting for state…</div>
+    </section>
+    <section>
+      <h2>Design state</h2>
+      <div id="matrix"></div>
+      <div id="options"></div>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let state = null;
+    let picked = null;
+
+    async function api(path, body) {
+      const res = await fetch(path, {
+        method: body ? "POST" : "GET",
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    function render() {
+      const spec = state.spec;
+      const design = state.design;
+      const c = state.constraints[0];
+      const ok = state.valid;
+      $("repo").textContent = state.repo_root;
+      $("evidence").innerHTML = `
+        <span>Vendor</span><b>${spec.vendor} ${spec.sku}</b>
+        <span>Rack power</span><b>${spec.rack_power}</b>
+        <span>Revision</span><b>${spec.revision}</b>
+        <span>Effective</span><b>${spec.effective_date}</b>
+        <span>Source</span><b>${spec.source}</b>
+        <span>Site</span><b>${design.name} · ${design.rack_count} racks</b>
+      `;
+      $("matrix").innerHTML = `
+        <div class="matrix ${ok ? "valid" : "fail"}">
+          <div>${c.expression}</div>
+          <div class="eq">${ok ? "fits inside" : "exceeds"} ${c.budget}</div>
+          <div class="status ${ok ? "valid" : "fail"}">${c.status}${ok ? "" : " · " + c.delta + " over"}</div>
+        </div>
+      `;
+      $("revise").disabled = spec.revision >= 2;
+      const options = state.remediations || [];
+      $("options").innerHTML = options.length
+        ? options.map((o) => `
+            <div class="option ${picked === o.id ? "picked" : ""}">
+              <strong>${o.title}</strong>
+              <p>${o.summary}</p>
+              <button data-apply="${o.id}">Approve and write ${o.id}</button>
+            </div>`).join("")
+        : `<p>${ok ? "No merge required." : "No legal remediations."}</p>`;
+      $("options").querySelectorAll("[data-apply]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          picked = btn.getAttribute("data-apply");
+          $("log").textContent = "Writing design/site.yaml … this is the irreversible step.";
+          state = await api("/api/apply", { option_id: picked });
+          $("log").textContent = "Design updated. Open a Qodo-reviewed PR before merging to main.";
+          render();
+        });
+      });
+    }
+
+    $("revise").addEventListener("click", async () => {
+      $("log").textContent = "Vendor notice applied to specs/rack-source.json …";
+      state = await api("/api/revise", {});
+      $("log").textContent = state.valid
+        ? "Still valid."
+        : "Constraint failed. TrueForge should now propose remediations and wait.";
+      render();
+    });
+
+    api("/api/state").then((data) => {
+      state = data;
+      $("log").textContent = "Design loaded from the repository. Apply the vendor revision to break it.";
+      render();
+    }).catch((err) => { $("log").textContent = err.message; });
+  </script>
+</body>
+</html>

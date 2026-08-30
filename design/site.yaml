@@ -1,0 +1,5 @@
+site:
+  name: sf-row-a
+  rack_count: 8
+  usable_power_budget_w: 850000
+  unit: W
