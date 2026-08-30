@@ -85,3 +85,28 @@ def test_unit_parsing(raw: object, watts: int) -> None:
 def test_rejects_mixed_fractional_kilowatts() -> None:
     with pytest.raises(ValueError):
         watts_from_label("1.5 kW")
+
+
+def test_rejects_fractional_and_negative_rack_counts(tmp_path: Path) -> None:
+    root = _seed(tmp_path)
+    (root / "design" / "site.yaml").write_text("site:\n  name: sf-row-a\n  rack_count: 7.9\n  usable_power_budget_w: 850000\n  unit: W\n")
+    with pytest.raises(ValueError, match="rack_count"):
+        validate(root)
+    (root / "design" / "site.yaml").write_text("site:\n  name: sf-row-a\n  rack_count: -1\n  usable_power_budget_w: 850000\n  unit: W\n")
+    with pytest.raises(ValueError, match="rack_count"):
+        validate(root)
+
+
+def test_rejects_contradictory_unit_metadata(tmp_path: Path) -> None:
+    root = _seed(tmp_path)
+    (root / "specs" / "rack-source.json").write_text(
+        '{"vendor":"NVIDIA","sku":"GB200 NVL72","rack_power_w":112,"unit":"kW","revision":1,"effective_date":"2026-06-01","source":"test"}\n'
+    )
+    with pytest.raises(ValueError, match="unit must be 'W'"):
+        validate(root)
+
+
+def test_revision_refuses_to_overwrite_newer_spec(tmp_path: Path) -> None:
+    root = _seed(tmp_path, rack_power_w=120_000)
+    with pytest.raises(ValueError, match="refusing to overwrite"):
+        apply_vendor_revision(root)

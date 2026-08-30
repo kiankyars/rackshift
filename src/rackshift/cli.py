@@ -49,8 +49,11 @@ def main(argv: list[str] | None = None) -> int:
         serve()
         return 0
     if args.cmd == "mcp":
-        from rackshift.mcp_server import serve_mcp
-
+        try:
+            from rackshift.mcp_server import serve_mcp
+        except ModuleNotFoundError:
+            sys.stderr.write("MCP extra missing. Install with: uv sync --extra mcp\n")
+            return 1
         serve_mcp(args.port)
         return 0
     raise AssertionError(args.cmd)

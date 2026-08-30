@@ -93,6 +93,15 @@
       return data;
     }
 
+    function esc(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
     function render() {
       const spec = state.spec;
       const design = state.design;
@@ -100,18 +109,18 @@
       const ok = state.valid;
       $("repo").textContent = state.repo_root;
       $("evidence").innerHTML = `
-        <span>Vendor</span><b>${spec.vendor} ${spec.sku}</b>
-        <span>Rack power</span><b>${spec.rack_power}</b>
-        <span>Revision</span><b>${spec.revision}</b>
-        <span>Effective</span><b>${spec.effective_date}</b>
-        <span>Source</span><b>${spec.source}</b>
-        <span>Site</span><b>${design.name} · ${design.rack_count} racks</b>
+        <span>Vendor</span><b>${esc(spec.vendor)} ${esc(spec.sku)}</b>
+        <span>Rack power</span><b>${esc(spec.rack_power)}</b>
+        <span>Revision</span><b>${esc(spec.revision)}</b>
+        <span>Effective</span><b>${esc(spec.effective_date)}</b>
+        <span>Source</span><b>${esc(spec.source)}</b>
+        <span>Site</span><b>${esc(design.name)} · ${esc(design.rack_count)} racks</b>
       `;
       $("matrix").innerHTML = `
         <div class="matrix ${ok ? "valid" : "fail"}">
-          <div>${c.expression}</div>
-          <div class="eq">${ok ? "fits inside" : "exceeds"} ${c.budget}</div>
-          <div class="status ${ok ? "valid" : "fail"}">${c.status}${ok ? "" : " · " + c.delta + " over"}</div>
+          <div>${esc(c.expression)}</div>
+          <div class="eq">${ok ? "fits inside" : "exceeds"} ${esc(c.budget)}</div>
+          <div class="status ${ok ? "valid" : "fail"}">${esc(c.status)}${ok ? "" : " · " + esc(c.delta) + " over"}</div>
         </div>
       `;
       $("revise").disabled = spec.revision >= 2;
@@ -119,9 +128,9 @@
       $("options").innerHTML = options.length
         ? options.map((o) => `
             <div class="option ${picked === o.id ? "picked" : ""}">
-              <strong>${o.title}</strong>
-              <p>${o.summary}</p>
-              <button data-apply="${o.id}">Approve and write ${o.id}</button>
+              <strong>${esc(o.title)}</strong>
+              <p>${esc(o.summary)}</p>
+              <button data-apply="${esc(o.id)}">Approve and write ${esc(o.id)}</button>
             </div>`).join("")
         : `<p>${ok ? "No merge required." : "No legal remediations."}</p>`;
       $("options").querySelectorAll("[data-apply]").forEach((btn) => {

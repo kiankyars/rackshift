@@ -18,11 +18,12 @@ There is no Bright Data scraper and no Daytona cloud sandbox. Power math is ordi
 ## Demo
 
 ```sh
-uv sync --extra dev
+uv sync --extra dev --extra mcp
 uv run pytest -q
 uv run rackshift status    # VALID: 8 × 100 kW = 800 kW ≤ 850 kW
 uv run rackshift revise    # VIOLATION: 8 × 112 kW = 896 kW
 uv run rackshift serve     # operator UI at http://127.0.0.1:8787
+uv run rackshift mcp --port 8788
 ```
 
 TrueForge should already be running (`npx @truefoundry/trueforge` → http://localhost:8790). Register the local MCP server after `uv run rackshift mcp --port 8788`, then load `trueforge/agent.json`.
